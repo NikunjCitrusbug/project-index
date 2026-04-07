@@ -121,13 +121,13 @@ Use the index to find relevant code instead of scanning directories.
 # ── init ───────────────────────────────────────────────────────────────
 
 @cli.command()
-@click.option("--project-root", default=None, help="Project root directory (default: auto-detect)")
+@click.option("--project-root", default=None, help="Project root directory (default: current directory)")
 def init(project_root: str | None):
     """Pre-index the current project (optional pre-warming)."""
     if project_root:
         root = Path(project_root).resolve()
     else:
-        root = detect_project_root(Path.cwd())
+        root = Path.cwd().resolve()
 
     click.echo(f"Indexing {root} ...")
     start = time.time()
@@ -222,13 +222,13 @@ def mcp():
 # ── reindex ────────────────────────────────────────────────────────────
 
 @cli.command()
-@click.option("--project-root", default=None, help="Project root directory (default: auto-detect)")
+@click.option("--project-root", default=None, help="Project root directory (default: current directory)")
 def reindex(project_root: str | None):
     """Force full re-index of current project."""
     if project_root:
         root = Path(project_root).resolve()
     else:
-        root = detect_project_root(Path.cwd())
+        root = Path.cwd().resolve()
 
     click.echo(f"Re-indexing {root} ...")
     start = time.time()
