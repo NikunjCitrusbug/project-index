@@ -11,7 +11,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from project_index.config import Settings
 from project_index.store.database import Database
@@ -131,9 +131,18 @@ class IndexManager:
         else:
             self.sync()
 
-    def full_index(self) -> dict[str, int]:
+    def full_index(
+        self,
+        progress_cb: Callable[[dict[str, Any]], None] | None = None,
+        heartbeat_seconds: float = 2.0,
+        slow_file_seconds: float = 5.0,
+    ) -> dict[str, int]:
         """Full index of the project."""
-        result = self.indexer.full_index()
+        result = self.indexer.full_index(
+            progress_cb=progress_cb,
+            heartbeat_seconds=heartbeat_seconds,
+            slow_file_seconds=slow_file_seconds,
+        )
         self._update_registry(result.get("files_indexed", 0))
         return result
 

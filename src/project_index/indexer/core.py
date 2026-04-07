@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import time
 from pathlib import Path
+from typing import Callable, Any
 
 from project_index.config import Settings
 from project_index.store.database import Database
@@ -25,15 +26,41 @@ class Indexer:
         self.ignore_filter = IgnoreFilter(settings.project_root, settings.exclude_patterns)
         self.resolver = ReferenceResolver(db)
 
-    def full_index(self) -> dict[str, int]:
+    def full_index(
+        self,
+        progress_cb: Callable[[dict[str, Any]], None] | None = None,
+        heartbeat_seconds: float = 2.0,
+        slow_file_seconds: float = 5.0,
+    ) -> dict[str, int]:
         """Walk the entire project and index all supported files."""
         start = time.time()
         project_root = Path(self.settings.project_root)
         max_size = self.settings.max_file_size_kb * 1024
 
+        files_seen = 0
         files_indexed = 0
         symbols_total = 0
         errors = 0
+        last_report = start
+
+        def maybe_report(current_file: str | None = None, force: bool = False) -> None:
+            nonlocal last_report
+            if progress_cb is None:
+                return
+            now = time.time()
+            if force or (now - last_report) >= heartbeat_seconds:
+                progress_cb(
+                    {
+                        "event": "progress",
+                        "files_seen": files_seen,
+                        "files_indexed": files_indexed,
+                        "symbols": symbols_total,
+                        "errors": errors,
+                        "current_file": current_file,
+                        "elapsed_seconds": round(now - start, 2),
+                    }
+                )
+                last_report = now
 
         for dirpath, dirnames, filenames in os.walk(project_root):
             # Filter out ignored directories in-place
@@ -62,15 +89,34 @@ class Indexer:
                     continue
 
                 try:
+                    files_seen += 1
+                    file_start = time.time()
                     rel_path = os.path.relpath(full_path, project_root)
                     count = self.index_file(full_path, rel_path, lang)
                     files_indexed += 1
                     symbols_total += count
+                    elapsed_file = time.time() - file_start
+                    if progress_cb is not None and elapsed_file >= slow_file_seconds:
+                        progress_cb(
+                            {
+                                "event": "slow_file",
+                                "file_path": rel_path,
+                                "file_elapsed_seconds": round(elapsed_file, 2),
+                                "files_seen": files_seen,
+                                "files_indexed": files_indexed,
+                                "symbols": symbols_total,
+                                "errors": errors,
+                                "elapsed_seconds": round(time.time() - start, 2),
+                            }
+                        )
+                    maybe_report(current_file=rel_path)
                 except Exception as exc:
                     logger.warning("Error indexing %s: %s", full_path, exc)
                     errors += 1
+                    maybe_report(current_file=full_path)
 
         elapsed = time.time() - start
+        maybe_report(force=True)
         logger.info(
             "Full index complete: %d files, %d symbols, %d errors in %.2fs",
             files_indexed, symbols_total, errors, elapsed,

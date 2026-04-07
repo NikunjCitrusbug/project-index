@@ -132,8 +132,23 @@ def init(project_root: str | None):
     click.echo(f"Indexing {root} ...")
     start = time.time()
 
+    def _progress(event: dict) -> None:
+        if event.get("event") == "slow_file":
+            click.echo(
+                f"Still indexing... slow file: {event.get('file_path')} "
+                f"({event.get('file_elapsed_seconds')}s)"
+            )
+            return
+        click.echo(
+            f"Progress: seen {event.get('files_seen', 0)} supported files, "
+            f"indexed {event.get('files_indexed', 0)}, "
+            f"symbols {event.get('symbols', 0)}, "
+            f"errors {event.get('errors', 0)} "
+            f"({event.get('elapsed_seconds', 0)}s)"
+        )
+
     manager = IndexManager(root)
-    result = manager.full_index()
+    result = manager.full_index(progress_cb=_progress)
     elapsed = time.time() - start
     manager.close()
 
@@ -218,9 +233,24 @@ def reindex(project_root: str | None):
     click.echo(f"Re-indexing {root} ...")
     start = time.time()
 
+    def _progress(event: dict) -> None:
+        if event.get("event") == "slow_file":
+            click.echo(
+                f"Still indexing... slow file: {event.get('file_path')} "
+                f"({event.get('file_elapsed_seconds')}s)"
+            )
+            return
+        click.echo(
+            f"Progress: seen {event.get('files_seen', 0)} supported files, "
+            f"indexed {event.get('files_indexed', 0)}, "
+            f"symbols {event.get('symbols', 0)}, "
+            f"errors {event.get('errors', 0)} "
+            f"({event.get('elapsed_seconds', 0)}s)"
+        )
+
     manager = IndexManager(root)
     manager.db.clear_all()
-    result = manager.full_index()
+    result = manager.full_index(progress_cb=_progress)
     elapsed = time.time() - start
     manager.close()
 

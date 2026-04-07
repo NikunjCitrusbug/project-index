@@ -355,4 +355,4 @@ src/project_index/
 
 ## License
 
-MIT
+MIT License. See [LICENSE](LICENSE).
