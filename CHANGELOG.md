@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.4 - 2026-04-23
+## 0.1.5 - 2026-04-23
 
 - Fixed Claude Code setup to register the MCP server in the current user-scoped config at `~/.claude.json` and mirror to legacy `~/.claude/settings.json`.
 - Added Codex MCP auto-registration in `~/.codex/config.toml` so Codex can launch `project-index mcp` directly.

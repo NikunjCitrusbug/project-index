@@ -29,6 +29,12 @@ Project Index is a local code indexing service that reduces AI tool token usage 
 - Version bumps, changelog updates, docs refreshes, and MCP integration fixes are allowed without extra approval
 - Ask before publishing to PyPI, installing from the network, editing files in `~/.claude*` or `~/.codex`, deleting release artifacts, or making likely breaking API changes
 
+## License Policy
+- This repository uses the MIT License; preserve `LICENSE` and keep the copyright notice intact
+- Derived copies and substantial redistributions should include the MIT license notice
+- Do not bring in third-party code or assets with incompatible, unclear, or unreviewed licensing
+- Ask before adding copyleft, commercial, source-available, or unknown-license material
+
 ## Architecture
 
 ### Multi-project indexing

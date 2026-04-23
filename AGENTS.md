@@ -20,6 +20,15 @@ This repository is intentionally friendly to autonomous coding agents. Default t
 - Editing files in the user home directory such as `~/.claude.json`, `~/.claude/settings.json`, or `~/.codex/config.toml` directly as part of development work.
 - Handling secrets, tokens, credentials, or production infrastructure settings.
 
+## License Policy
+
+- This repository is released under the MIT License. Preserve the `LICENSE` file and keep the copyright notice intact.
+- It is fine to copy, modify, merge, publish, distribute, sublicense, and sell this software under MIT terms.
+- When creating substantial copies or derived distributions of this repository, include the MIT license notice.
+- Do not introduce code, assets, or documentation copied from sources with incompatible or unclear licenses.
+- Prefer original code, MIT-compatible dependencies, or clearly attributed permissive-license material when reusing external work.
+- Ask before adding third-party code with copyleft, commercial, source-available, or unknown licensing terms.
+
 ## Release Defaults
 
 - Prefer patch version bumps for integration and documentation fixes unless the change is clearly user-facing and breaking.

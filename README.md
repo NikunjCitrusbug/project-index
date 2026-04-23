@@ -13,6 +13,10 @@ project-index setup
 
 That's it. Project Index is now active for every project you work on.
 
+## License
+
+Project Index is distributed under the MIT License. If you redistribute substantial portions of the project, include the license notice from [LICENSE](LICENSE).
+
 ## What happens after setup
 
 1. **`project-index setup`** auto-detects your AI tools (Claude Code, Cursor) and configures them globally
@@ -187,7 +191,7 @@ Start with `project-index serve` (default: `http://127.0.0.1:9120`).
 ### GET /health
 ```bash
 curl http://localhost:9120/health
-# {"status":"ok","version":"0.1.4"}
+# {"status":"ok","version":"0.1.5"}
 ```
 
 ### GET /stats
