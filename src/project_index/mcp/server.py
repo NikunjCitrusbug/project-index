@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from project_index import __version__
 from project_index.manager import IndexManager, detect_project_root
 
 
@@ -248,7 +249,7 @@ class MCPServer:
             },
             "serverInfo": {
                 "name": "project-index",
-                "version": "0.1.0",
+                "version": __version__,
             },
         })
 

@@ -99,17 +99,20 @@ project-index reindex
 After `project-index setup`, Claude Code auto-discovers the MCP server. No per-project config needed.
 
 **What `setup` does:**
-- Adds to `~/.claude/settings.json`:
+- Adds a user-scoped MCP server to `~/.claude.json`:
   ```json
   {
     "mcpServers": {
       "project-index": {
+        "type": "stdio",
         "command": "project-index",
-        "args": ["mcp"]
+        "args": ["mcp"],
+        "env": {}
       }
     }
   }
   ```
+- Also mirrors the config to legacy `~/.claude/settings.json` for older Claude Code builds
 - Claude Code spawns `project-index mcp` as a stdio process when needed
 - The MCP server detects your project root from Claude Code's working directory
 - Auto-indexes on first query, auto-syncs on subsequent queries
@@ -145,6 +148,27 @@ Claude Code internally:
   3. Claude answers using only the relevant context
 ```
 
+## How it works with Codex
+
+Current Codex builds support MCP directly, so `project-index setup` registers a stdio server in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.project-index]
+command = "project-index"
+args = ["mcp"]
+```
+
+After that, Codex can launch `project-index mcp` directly as an MCP server, similar to Claude Code.
+
+You can verify the registration with:
+
+```bash
+codex mcp list
+codex mcp get project-index
+```
+
+The `project-index export --format agents-md` flow is still available as a fallback for workflows that prefer REST + `AGENTS.md`, but MCP is the primary integration path for Codex.
+
 ## How it works with Cursor
 
 After `project-index setup`, Cursor gets rules at `~/.cursor/rules/project-index.mdc` that instruct it to query the REST API.
@@ -163,7 +187,7 @@ Start with `project-index serve` (default: `http://127.0.0.1:9120`).
 ### GET /health
 ```bash
 curl http://localhost:9120/health
-# {"status":"ok","version":"0.1.0"}
+# {"status":"ok","version":"0.1.4"}
 ```
 
 ### GET /stats

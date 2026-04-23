@@ -4,6 +4,8 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
+from project_index import __version__
+
 
 # ── Request models ──────────────────────────────────────────────────
 
@@ -33,7 +35,7 @@ class ReindexRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str = "ok"
-    version: str = "0.1.0"
+    version: str = __version__
 
 
 class ReadyResponse(BaseModel):

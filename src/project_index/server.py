@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from project_index import __version__
 from project_index.config import Settings
 from project_index.store.database import Database
 from project_index.indexer.core import Indexer
@@ -53,7 +54,7 @@ def create_app() -> FastAPI:
     settings = Settings()
     application = FastAPI(
         title="project-index",
-        version="0.1.0",
+        version=__version__,
         lifespan=lifespan,
     )
     application.state.settings = settings

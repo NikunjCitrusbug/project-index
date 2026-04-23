@@ -44,7 +44,7 @@ Leave this running in a terminal (or run with `&` to background it).
 ```bash
 # Health check
 curl http://localhost:9120/health
-# {"status":"ok","version":"0.1.0"}
+# {"status":"ok","version":"0.1.4"}
 
 # Check what's indexed
 curl http://localhost:9120/stats

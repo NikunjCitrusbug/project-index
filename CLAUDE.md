@@ -13,6 +13,22 @@ Project Index is a local code indexing service that reduces AI tool token usage 
 - Run tests: `pytest tests/`
 - Install dev: `pip install -e ".[all,dev]"`
 
+## Claude Code MCP Note
+- Current Claude Code user-scoped MCP servers are stored in `~/.claude.json`
+- Legacy Claude Code builds may still read `~/.claude/settings.json`
+- `project-index setup` should keep both in sync so Claude Code can spawn `project-index mcp`
+
+## Codex MCP Note
+- Current Codex MCP servers are stored in `~/.codex/config.toml`
+- `project-index setup` should register `[mcp_servers.project-index]` there
+- The older `AGENTS.md` + REST export is still optional, not the primary Codex integration
+
+## Agent Policy
+- Read/search/analyze files freely and make repository-scoped edits without waiting for approval
+- Safe local verification is allowed: `python -m py_compile`, `pytest`, `ruff`, and local package builds
+- Version bumps, changelog updates, docs refreshes, and MCP integration fixes are allowed without extra approval
+- Ask before publishing to PyPI, installing from the network, editing files in `~/.claude*` or `~/.codex`, deleting release artifacts, or making likely breaking API changes
+
 ## Architecture
 
 ### Multi-project indexing

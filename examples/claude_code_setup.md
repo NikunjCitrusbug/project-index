@@ -17,7 +17,7 @@ Output:
 ```
 Project Index setup complete!
 
-  ✓ Claude Code — MCP server registered globally
+  ✓ Claude Code — MCP server registered in ~/.claude.json
 
 Project Index is now active. It will auto-index any project you work on.
 ```
@@ -26,18 +26,22 @@ That's it. You're done.
 
 ## What happens behind the scenes
 
-`project-index setup` adds this to `~/.claude/settings.json`:
+`project-index setup` adds a user-scoped MCP server to `~/.claude.json`:
 
 ```json
 {
     "mcpServers": {
         "project-index": {
+            "type": "stdio",
             "command": "project-index",
-            "args": ["mcp"]
+            "args": ["mcp"],
+            "env": {}
         }
     }
 }
 ```
+
+For backward compatibility, it also mirrors the same server to legacy `~/.claude/settings.json`.
 
 This registers globally — it works for **every project** you open in Claude Code, not just one.
 

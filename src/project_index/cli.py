@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import time
 from pathlib import Path
@@ -23,6 +24,59 @@ def cli():
     pass
 
 
+def _read_json_file(path: Path) -> dict:
+    """Read a JSON file, returning an empty object on parse/read failure."""
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _write_json_file(path: Path, data: dict) -> None:
+    """Write JSON with a stable format."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2))
+
+
+def _upsert_toml_section(path: Path, section_name: str, body_lines: list[str]) -> None:
+    """Replace or append a simple TOML section while preserving other content."""
+    text = path.read_text() if path.is_file() else ""
+    pattern = rf"(?ms)^\[{re.escape(section_name)}\]\n.*?(?=^\[|\Z)"
+    replacement = f"[{section_name}]\n" + "\n".join(body_lines).rstrip() + "\n"
+
+    if re.search(pattern, text):
+        updated = re.sub(pattern, replacement, text)
+    else:
+        updated = text.rstrip()
+        if updated:
+            updated += "\n\n"
+        updated += replacement
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(updated)
+
+
+def _remove_toml_section(path: Path, section_name: str) -> bool:
+    """Remove a simple TOML section if present."""
+    if not path.is_file():
+        return False
+
+    text = path.read_text()
+    pattern = rf"(?ms)^\[{re.escape(section_name)}\]\n.*?(?=^\[|\Z)"
+    updated, count = re.subn(pattern, "", text)
+    if count == 0:
+        return False
+
+    updated = re.sub(r"\n{3,}", "\n\n", updated).strip()
+    if updated:
+        updated += "\n"
+    path.write_text(updated)
+    return True
+
+
 # ── setup ──────────────────────────────────────────────────────────────
 
 @cli.command()
@@ -33,23 +87,33 @@ def setup():
 
     # -- Claude Code --
     claude_dir = Path.home() / ".claude"
-    if claude_dir.exists():
-        settings_file = claude_dir / "settings.json"
-        settings = {}
-        if settings_file.is_file():
-            try:
-                settings = json.loads(settings_file.read_text())
-            except (json.JSONDecodeError, OSError):
-                settings = {}
+    claude_user_config = Path.home() / ".claude.json"
+    claude_detected = claude_dir.exists() or claude_user_config.exists() or shutil.which("claude") is not None
+    if claude_detected:
+        user_config = _read_json_file(claude_user_config)
+        user_mcp_servers = user_config.get("mcpServers", {})
+        user_mcp_servers["project-index"] = {
+            "type": "stdio",
+            "command": "project-index",
+            "args": ["mcp"],
+            "env": {},
+        }
+        user_config["mcpServers"] = user_mcp_servers
+        _write_json_file(claude_user_config, user_config)
 
-        mcp_servers = settings.get("mcpServers", {})
-        mcp_servers["project-index"] = {
+        # Older Claude Code builds stored MCP config in ~/.claude/settings.json.
+        # Keep the legacy location in sync for backward compatibility.
+        legacy_settings_file = claude_dir / "settings.json"
+        legacy_settings = _read_json_file(legacy_settings_file)
+        legacy_mcp_servers = legacy_settings.get("mcpServers", {})
+        legacy_mcp_servers["project-index"] = {
             "command": "project-index",
             "args": ["mcp"],
         }
-        settings["mcpServers"] = mcp_servers
-        settings_file.write_text(json.dumps(settings, indent=2))
-        configured.append(("Claude Code", "MCP server registered globally"))
+        legacy_settings["mcpServers"] = legacy_mcp_servers
+        _write_json_file(legacy_settings_file, legacy_settings)
+
+        configured.append(("Claude Code", "MCP server registered in ~/.claude.json"))
     else:
         not_detected.append("Claude Code")
 
@@ -87,10 +151,18 @@ Use the index to find relevant code instead of scanning directories.
     # -- Codex CLI (OpenAI) --
     codex_detected = shutil.which("codex") is not None
     if codex_detected:
+        codex_config = Path.home() / ".codex" / "config.toml"
+        _upsert_toml_section(
+            codex_config,
+            "mcp_servers.project-index",
+            [
+                'command = "project-index"',
+                'args = ["mcp"]',
+            ],
+        )
         configured.append((
             "Codex CLI",
-            "Detected. Run 'project-index serve' and add AGENTS.md to your project.\n"
-            "           Use 'project-index export --format agents-md > AGENTS.md' to generate it.",
+            "MCP server registered in ~/.codex/config.toml",
         ))
     else:
         not_detected.append("Codex CLI")
@@ -371,24 +443,36 @@ def uninstall():
     removed = []
 
     # -- Claude Code --
+    claude_user_config = Path.home() / ".claude.json"
+    if claude_user_config.is_file():
+        user_config = _read_json_file(claude_user_config)
+        user_mcp_servers = user_config.get("mcpServers", {})
+        if "project-index" in user_mcp_servers:
+            del user_mcp_servers["project-index"]
+            user_config["mcpServers"] = user_mcp_servers
+            _write_json_file(claude_user_config, user_config)
+            removed.append("Claude Code MCP config (~/.claude.json)")
+
     claude_settings = Path.home() / ".claude" / "settings.json"
     if claude_settings.is_file():
-        try:
-            settings = json.loads(claude_settings.read_text())
-            mcp_servers = settings.get("mcpServers", {})
-            if "project-index" in mcp_servers:
-                del mcp_servers["project-index"]
-                settings["mcpServers"] = mcp_servers
-                claude_settings.write_text(json.dumps(settings, indent=2))
-                removed.append("Claude Code settings")
-        except (json.JSONDecodeError, OSError):
-            pass
+        settings = _read_json_file(claude_settings)
+        mcp_servers = settings.get("mcpServers", {})
+        if "project-index" in mcp_servers:
+            del mcp_servers["project-index"]
+            settings["mcpServers"] = mcp_servers
+            _write_json_file(claude_settings, settings)
+            removed.append("Claude Code legacy settings (~/.claude/settings.json)")
 
     # -- Cursor --
     cursor_rules = Path.home() / ".cursor" / "rules" / "project-index.mdc"
     if cursor_rules.is_file():
         cursor_rules.unlink()
         removed.append("Cursor rules")
+
+    # -- Codex CLI --
+    codex_config = Path.home() / ".codex" / "config.toml"
+    if _remove_toml_section(codex_config, "mcp_servers.project-index"):
+        removed.append("Codex MCP config (~/.codex/config.toml)")
 
     # -- Codex AGENTS.md note --
     # We don't auto-delete AGENTS.md since the user may have other content in it
